@@ -57,9 +57,9 @@ class Reader
     public function printProcessedFile()
     {
         echo '<h2>file</h2>';
-        echo '<pre>';
-        var_dump($this->file);
-        echo '/<pre>';
+        // echo '<pre>';
+        // var_dump($this->file);
+        // echo '/<pre>';
         echo '<h2>imported</h2>';
         echo '<pre>';
         var_dump($this->imported);
@@ -81,11 +81,24 @@ class Reader
     }
 
     /**
+     * Return imported/processed file
+     * 
+     * @return array
+     */
+    public function getProcessedFile()
+    {
+        return $this->imported;
+    }
+
+    /**
      * Process the imported file into usable data arrays
      */
     public function processFile()
     {
         $this->iterateAll(function($line, $line_number) {
+            if ($this->isLineIgnorable($line)) {
+                return;
+            }
             if ($this->currently_in_array) {
                 $this->reEngageIfArrayIsOver($line);
             } elseif ($this->currently_in_object) {
@@ -94,6 +107,27 @@ class Reader
                 $this->importLine($line, $line_number);
             }
         });
+    }
+
+    /**
+     * Return whether this is a known ignorable line
+     * 
+     * @param  string  $line
+     * @return boolean
+     */
+    protected function isLineIgnorable($line)
+    {
+        $ignorable_strings = array(
+            // Virtual box stuff I don't care to allow at the moment
+            'vb.',
+            // NFS mount options I don't care to allow at the moment
+            ':nfs', ':mount_options'
+        );
+        foreach ($ignorable_strings as $string) {
+            if (stripos($line, $string) !== false) {
+                return true;
+            }
+        }
     }
 
     /**
@@ -312,13 +346,14 @@ class Reader
 
     /**
      * Test whether this line is the opener of an array
+     * AND not the closer (which are all, at the moment, code lines)
      * 
      * @param  string  $line line
      * @return boolean
      */
     protected function isArrayOpener($line)
     {
-        return stripos($line, '[') !== false;
+        return (stripos($line, '[') !== false) && ! $this->isArrayCloser($line);
     }
 
     /**
@@ -396,11 +431,11 @@ class Reader
      */
     protected function splitConfig($line, $line_number)
     {
-        $line = explode(' = ', $line);
+        $line_array = explode(' = ', $line);
 
         $return = array(
-            'key' => trim($line[0]),
-            'value' => $this->splitConfigValueAndComments($line[1], $line_number)
+            'key' => trim($line_array[0]),
+            'value' => $this->splitConfigValueAndComments($line_array[1], $line_number)
         );
 
         return $return;
@@ -458,9 +493,8 @@ class Reader
     {
         $this->currently_in_array = true;
         $lines = $this->getArrayOriginalLines($line_number);
-        dd($lines);
-        // $this->getA
-        // @todo: SHouldn't this get data??
+        $reader = new ArrayReader($lines);
+        return $reader->getData();
     }
 
     /**
@@ -473,6 +507,7 @@ class Reader
     protected function splitConfigValueObjectStart($value, $line_number)
     {
         $this->currently_in_object = true;
+        return array('program' => 'me');
         // @todo: SHouldn't this get data??
     }
 

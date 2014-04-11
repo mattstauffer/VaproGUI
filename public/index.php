@@ -3,12 +3,33 @@
 require '../vendor/autoload.php';
 require '../helpers/core.php';
 
-$app = new \Slim\Slim();
+// Prepare app
+$app = new \Slim\Slim(array(
+    'templates.path' => '../templates',
+));
+
+// Prepare view
+$app->view(new \Slim\Views\Twig());
+$app->view->parserOptions = array(
+    'charset' => 'utf-8',
+    'cache' => realpath('../templates/cache'),
+    'auto_reload' => true,
+    'strict_variables' => false,
+    'autoescape' => true
+);
+$app->view->parserExtensions = array(new \Slim\Views\TwigExtension());
 
 $app->get('/', function() use ($app) {
-    $reader = new Vaprogui\Reader('test-vagrantfile-simple');
+    $reader = new Vaprogui\Ruby\Reader('test-vagrantfile-simple');
     $reader->processFile();
-    $reader->printProcessedFile();
+    $processed = $reader->getProcessedFile();
+
+    $presenter = new Vaprogui\UI\Form($processed);
+    $form = $presenter->outputForm();
+
+    $data = array('form' => $form);
+
+    $app->render('form.html', $data);
 });
 
 $app->run();
