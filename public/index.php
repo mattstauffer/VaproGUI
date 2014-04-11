@@ -15,7 +15,7 @@ $app->view->parserOptions = array(
     'cache' => realpath('../templates/cache'),
     'auto_reload' => true,
     'strict_variables' => false,
-    'autoescape' => true
+    'autoescape' => false
 );
 $app->view->parserExtensions = array(new \Slim\Views\TwigExtension());
 
@@ -29,7 +29,7 @@ $app->get('/', function() use ($app) {
 
     $data = array('form' => $form);
 
-    $app->render('form.html', $data);
+    $app->render('form.twig', $data);
 });
 
 $app->run();
